@@ -1,0 +1,48 @@
+# Environnement virtuel
+venv/
+toxicity_env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Modèles entraînés (qui peuvent être lourds)
+models/models/*
+models/deep/*.h5
+models/deep/*.pkl
+models/fast/*.joblib
+*.model
+*.bin
+*.h5
+*.pkl
+*.joblib
+
+# Données
+data/
+datasets/
+*.csv
+*.json
+*.jsonl
+*.zip
+*.tar.gz
+
+# Logs
+logs/
+*.log
+
+# Fichiers spécifiques à l'environnement
+.env
+.env.*
+*.env
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers d'IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+.docker/

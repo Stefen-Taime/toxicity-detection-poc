@@ -1,0 +1,46 @@
+# Basic configuration
+blob.server.port: 6124
+jobmanager.rpc.address: jobmanager
+taskmanager.numberOfTaskSlots: 8
+query.server.port: 6125
+
+# Class loading configuration for Kafka connectors
+classloader.resolve-order: parent-first
+classloader.parent-first-patterns.additional: org.apache.flink.streaming.connectors.kafka
+
+# Job Manager configuration
+jobmanager.memory.process.size: 1600m
+jobmanager.memory.jvm-metaspace.size: 512m
+
+# Task Manager configuration
+taskmanager.memory.process.size: 4096m
+taskmanager.memory.network.min: 64mb
+taskmanager.memory.network.max: 64mb
+
+# Checkpointing and state configuration
+state.backend: filesystem
+state.checkpoints.dir: file:///opt/flink/checkpoints
+state.savepoints.dir: file:///opt/flink/savepoints
+execution.checkpointing.interval: 30000
+execution.checkpointing.mode: EXACTLY_ONCE
+
+# Parallelism
+parallelism.default: 4
+
+# Web UI
+rest.port: 8081
+
+# High availability (optional, only if you need it)
+# high-availability: zookeeper
+# high-availability.zookeeper.quorum: zookeeper:2181
+# high-availability.storageDir: hdfs:///flink/ha/
+# high-availability.zookeeper.path.root: /flink
+
+# Metrics (optional)
+# metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+# metrics.reporter.prometheus.port: 9249
+
+# Logging
+# log.file: /opt/flink/log/flink.log
+# log.file.max: 5
+# log.file.max-size: 100MB

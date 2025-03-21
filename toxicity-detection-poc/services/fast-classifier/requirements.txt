@@ -1,0 +1,13 @@
+apache-flink==1.18.0
+# Suppression de pemja qui pose problème avec Python 3.10
+# pemja==0.2.6
+numpy==1.24.3
+kafka-python==2.0.2
+python-dotenv==1.0.0
+googleapis-common-protos
+boto3
+minio
+ruamel.yaml
+protobuf==3.19.6
+tensorflow-cpu==2.9.3
+scikit-learn==1.2.2

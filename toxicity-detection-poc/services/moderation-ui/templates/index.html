@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface de Modération de Toxicité</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 bg-dark text-white sidebar">
+                <div class="d-flex flex-column p-3">
+                    <h3 class="fs-4"><i class="bi bi-shield"></i> Modération de Toxicité</h3>
+                    <hr>
+                    <p>Interface pour la modération humaine des messages potentiellement toxiques.</p>
+                    
+                    <h5 class="mt-4">Connexion Kafka</h5>
+                    <div class="small">
+                        <div class="mb-1"><strong>Serveur:</strong> <span id="kafka-server">Chargement...</span></div>
+                        <div class="mb-1"><strong>Topic d'entrée:</strong> <span id="input-topic">Chargement...</span></div>
+                        <div class="mb-1"><strong>Topic de sortie:</strong> <span id="output-topic">Chargement...</span></div>
+                    </div>
+                    
+                    <h5 class="mt-4">Actions</h5>
+                    <div class="d-grid gap-2">
+                        <button id="restart-consumer-btn" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-arrow-clockwise"></i> Redémarrer le consumer
+                        </button>
+                        <button id="load-messages-btn" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-cloud-download"></i> Charger depuis Kafka
+                        </button>
+                        <button id="add-test-message-btn" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-plus-circle"></i> Ajouter un message test
+                        </button>
+                        <button id="clear-queue-btn" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-trash"></i> Vider la file d'attente
+                        </button>
+                    </div>
+                    
+                    <h5 class="mt-4">Aide à la décision</h5>
+                    <div class="small">
+                        <p><strong>Autoriser</strong>: Le message n'est pas toxique ou est une plaisanterie acceptable entre amis.</p>
+                        <p><strong>Bloquer</strong>: Le message est toxique et doit être bloqué.</p>
+                        <p><strong>Ignorer</strong>: Passer temporairement ce message et le traiter plus tard.</p>
+                    </div>
+                    
+                    <div class="mt-auto">
+                        <div class="accordion" id="debugAccordion">
+                            <div class="accordion-item bg-dark text-white">
+                                <h2 class="accordion-header" id="headingDebug">
+                                    <button class="accordion-button collapsed bg-dark text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDebug" aria-expanded="false" aria-controls="collapseDebug">
+                                        Informations de débogage
+                                    </button>
+                                </h2>
+                                <div id="collapseDebug" class="accordion-collapse collapse" aria-labelledby="headingDebug">
+                                    <div class="accordion-body small">
+                                        <div id="debug-info">
+                                            <div><strong>État consumer:</strong> <span id="consumer-status">Chargement...</span></div>
+                                            <div><strong>Taille file:</strong> <span id="queue-size">0</span></div>
+                                            <div><strong>Dernière activité:</strong> <span id="last-activity">-</span></div>
+                                            <div><strong>Inactif depuis:</strong> <span id="inactive-seconds">-</span> sec</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main content -->
+            <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Interface de Modération de Toxicité</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button id="moderation-tab-btn" type="button" class="btn btn-sm btn-outline-primary active">Modération</button>
+                            <button id="stats-tab-btn" type="button" class="btn btn-sm btn-outline-primary">Statistiques</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Moderation Tab -->
+                <div id="moderation-tab">
+                    <h3>Messages à modérer</h3>
+                    <div class="alert alert-info" id="consumer-alert">
+                        <strong>Statut du consumer Kafka:</strong> <span id="consumer-status-main">Chargement...</span>
+                    </div>
+                    
+                    <!-- No messages view -->
+                    <div id="no-messages-view" class="mt-4 text-center d-none">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Aucun message à modérer pour le moment.
+                        </div>
+                        <button id="search-messages-btn" class="btn btn-primary mt-3">
+                            <i class="bi bi-search"></i> Chercher des messages dans Kafka
+                        </button>
+                    </div>
+                    
+                    <!-- Message view -->
+                    <div id="message-view" class="mt-4 d-none">
+                        <div class="d-flex justify-content-between">
+                            <h5>Messages en attente: <span id="queue-count">0</span></h5>
+                        </div>
+                        
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h4>Contexte du message</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Informations de base</h5>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <th>ID du message:</th>
+                                                <td id="message-id">-</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Expéditeur:</th>
+                                                <td id="sender-id">-</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Jeu:</th>
+                                                <td id="game-id">-</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Canal:</th>
+                                                <td id="channel-id">-</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Amis:</th>
+                                                <td id="friends-info">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>Résultats d'analyse</h5>
+                                        
+                                        <h6 class="mt-3">Classification rapide:</h6>
+                                        <div class="progress mb-2">
+                                            <div id="classification-score-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">Score: <span id="classification-score">-</span></div>
+                                            <div class="col-6">Incertitude: <span id="classification-uncertainty">-</span></div>
+                                        </div>
+                                        
+                                        <h6 class="mt-3">Analyse approfondie:</h6>
+                                        <div class="progress mb-2">
+                                            <div id="deep-analysis-score-bar" class="progress-bar bg-danger" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">Score: <span id="deep-analysis-score">-</span></div>
+                                            <div class="col-6">Incertitude: <span id="deep-analysis-uncertainty">-</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h5 class="mt-4">Contenu du message</h5>
+                                <div class="form-floating">
+                                    <textarea class="form-control" id="message-content" style="height: 120px" readonly></textarea>
+                                    <label for="message-content">Message</label>
+                                </div>
+                                
+                                <div class="accordion mt-3" id="metadataAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="headingMetadata">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMetadata" aria-expanded="false" aria-controls="collapseMetadata">
+                                                Métadonnées supplémentaires
+                                            </button>
+                                        </h2>
+                                        <div id="collapseMetadata" class="accordion-collapse collapse" aria-labelledby="headingMetadata">
+                                            <div class="accordion-body">
+                                                <pre id="metadata-json" class="border rounded p-3 bg-light"></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h4>Décision de modération</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="reason-input" class="form-label">Raison (obligatoire pour bloquer)</label>
+                                    <input type="text" class="form-control" id="reason-input" placeholder="Saisissez une raison...">
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button id="approve-btn" class="btn btn-success btn-lg">
+                                        <i class="bi bi-check-circle"></i> Autoriser
+                                    </button>
+                                    <button id="block-btn" class="btn btn-danger btn-lg">
+                                        <i class="bi bi-x-circle"></i> Bloquer
+                                    </button>
+                                    <button id="skip-btn" class="btn btn-secondary btn-lg">
+                                        <i class="bi bi-arrow-right-circle"></i> Ignorer/Passer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics Tab -->
+                <div id="stats-tab" class="d-none">
+                    <h3>Statistiques de modération</h3>
+                    
+                    <!-- No statistics view -->
+                    <div id="no-stats-view" class="mt-4 text-center d-none">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Aucune décision de modération enregistrée.
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics view -->
+                    <div id="stats-view" class="mt-4 d-none">
+                        <h4>Aperçu général</h4>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total des décisions</h5>
+                                        <p class="card-text display-4" id="total-decisions">0</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Messages toxiques</h5>
+                                        <p class="card-text display-4 text-danger" id="toxic-count">0</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Messages acceptables</h5>
+                                        <p class="card-text display-4 text-success" id="ok-count">0</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h4 class="mt-4">Dernières décisions</h4>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-striped" id="decisions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Heure</th>
+                                        <th>ID du message</th>
+                                        <th>Décision</th>
+                                        <th>Raison</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="decisions-tbody">
+                                    <!-- Les données seront injectées ici par JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="notification-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toast-title">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+                Message de notification
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.sidebar {
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+}
+
+/* Status colors */
+.status-active {
+    color: #28a745;
+}
+
+.status-inactive {
+    color: #dc3545;
+}
+
+.status-warning {
+    color: #ffc107;
+}
+
+/* Progress bar colors */
+.progress-bar.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.progress-bar.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Improve readability of message content */
+#message-content {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1.1rem;
+}
+
+/* Enhanced card styling */
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Button styling */
+.btn-lg {
+    min-width: 120px;
+}
+
+/* Table styling */
+.table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Debug accordion in dark theme */
+.accordion-button.bg-dark:not(.collapsed) {
+    color: white;
+    background-color: #212529;
+}
+
+.accordion-button.bg-dark:focus {
+    box-shadow: none;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #007bff;
+    animation: spinner 1s ease-in-out infinite;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Decision badges */
+.badge-toxic {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-ok {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Improved metadata display */
+pre#metadata-json {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Active tab button */
+.btn-outline-primary.active {
+    background-color: #007bff;
+    color: white;
+}
