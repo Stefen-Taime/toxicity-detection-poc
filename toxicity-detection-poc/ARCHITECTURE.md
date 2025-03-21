@@ -1,93 +1,96 @@
-# Architecture du système de détection de toxicité en temps réel
+# Real-Time Toxicity Detection System Architecture
 
-## Vue d'ensemble
+## Overview
 
-Notre architecture remplace les solutions propriétaires (Confluent Cloud et Databricks) par des alternatives open source tout en conservant les fonctionnalités essentielles du système original.
+This architecture replaces proprietary solutions (Confluent Cloud and Databricks) with open-source alternatives while retaining the essential functionalities of the original system.
 
-![Architecture du système](./docs/images/architecture.png)
+![System Architecture](./docs/images/architecture.png)
 
-## Composants principaux
+## Main Components
 
-### 1. Ingestion des messages (Proxy d'ingestion)
+### 1. Message Ingestion (Ingestion Proxy)
 - **Service**: `game-message-proxy`
-- **Technologie**: FastAPI
-- **Rôle**: Recevoir les messages des serveurs de jeu et les publier dans Kafka/Redpanda
+- **Technology**: FastAPI
+- **Role**: Receives messages from game servers and publishes them to Kafka/Redpanda
 
-### 2. Transport de messages
-- **Service**: `redpanda` (alternative à Apache Kafka)
-- **Technologie**: Redpanda (compatible Kafka API)
-- **Rôle**: Stocker et transmettre les messages entre les composants du système
+### 2. Message Transport
+- **Service**: `redpanda` (alternative to Apache Kafka)
+- **Technology**: Redpanda (Kafka API compatible)
+- **Role**: Store and forward messages between system components
 - **Topics**:
-  - `raw-messages`: Messages bruts entrants
-  - `classified-messages`: Messages avec classification préliminaire
-  - `nlp-analysis-required`: Messages nécessitant une analyse approfondie
-  - `nlp-analysis-results`: Résultats de l'analyse approfondie
-  - `moderation-required`: Messages nécessitant une intervention humaine
-  - `moderation-results`: Résultats de la modération humaine
-  - `final-decisions`: Décisions finales sur les messages
-  - `model-training-data`: Données pour l'entraînement des modèles
+  - `raw-messages`: Incoming raw messages
+  - `classified-messages`: Messages with preliminary classification
+  - `nlp-analysis-required`: Messages requiring deeper analysis
+  - `nlp-analysis-results`: Results of deeper analysis
+  - `moderation-required`: Messages requiring human intervention
+  - `moderation-results`: Human moderation outcomes
+  - `final-decisions`: Final decisions on messages
+  - `model-training-data`: Data for model training
 
-### 3. Classification rapide
+### 3. Fast Classification
 - **Service**: `fast-classifier`
-- **Technologie**: Apache Flink
-- **Rôle**: Classifier rapidement les messages en trois catégories (OK, Toxique, Nécessite analyse)
-- **Modèle**: Modèle léger optimisé pour la vitesse (TensorFlow Lite)
+- **Technology**: Apache Flink
+- **Role**: Quickly classify messages into three categories (OK, Toxic, Needs Review)
+- **Model**: Lightweight model optimized for speed (TensorFlow Lite)
 
-### 4. Analyse approfondie
+### 4. Deep Analysis
 - **Service**: `deep-analyzer`
-- **Technologie**: Spark (alternative à Databricks)
-- **Rôle**: Analyser en profondeur les messages ambigus avec contexte
-- **Modèle**: Modèle NLP plus complexe (Transformer-based)
+- **Technology**: Spark (alternative to Databricks)
+- **Role**: Deeply analyze ambiguous messages with context
+- **Model**: More complex NLP model (Transformer-based)
 
-### 5. Stockage de données
+### 5. Data Storage
 - **Service**: `minio`
-- **Technologie**: MinIO (S3 compatible)
-- **Rôle**: Stocker les modèles ML, les données d'entraînement et les logs
+- **Technology**: MinIO (S3 compatible)
+- **Role**: Store ML models, training data, and logs
 
-### 6. Gestion des modèles
+### 6. Model Management
 - **Service**: `mlflow`
-- **Technologie**: MLflow
-- **Rôle**: Suivre les expériences, gérer les versions des modèles et orchestrer le déploiement
+- **Technology**: MLflow
+- **Role**: Track experiments, manage model versions, orchestrate deployments
 
-### 7. Interface de modération
+### 7. Moderation Interface
 - **Service**: `moderation-ui`
-- **Technologie**: Streamlit
-- **Rôle**: Interface pour les modérateurs humains
+- **Technology**: Html5, Css, Js
+- **Role**: UI for human moderators
 
-### 8. Gestionnaire de décisions
+### 8. Decision Manager
 - **Service**: `decision-manager`
-- **Technologie**: Python (FastAPI)
-- **Rôle**: Appliquer les règles de modération et envoyer les décisions finales
+- **Technology**: Python (FastAPI)
+- **Role**: Apply moderation rules and publish final decisions
 
-### 9. Simulateur de jeu (pour le POC)
+### 9. Game Simulator (for POC)
 - **Service**: `game-simulator`
-- **Technologie**: Python
-- **Rôle**: Simuler des conversations de jeu pour tester le système
+- **Technology**: Python
+- **Role**: Simulate in-game conversations for system testing
 
-## Flux de données
+## Data Flow
 
-1. Les messages du jeu sont envoyés au proxy d'ingestion
-2. Le proxy publie les messages dans le topic `raw-messages` de Redpanda
-3. Le classificateur rapide (Flink) consomme les messages et les classe en trois catégories:
-   - Messages "OK" → topic `classified-messages` (tag: OK)
-   - Messages "Toxiques" → topic `classified-messages` (tag: Toxique)
-   - Messages ambigus → topic `nlp-analysis-required`
-4. Le service d'analyse approfondie traite les messages ambigus et publie les résultats dans `nlp-analysis-results`
-5. Si l'analyse approfondie ne peut pas prendre de décision, le message est envoyé à `moderation-required`
-6. Les modérateurs humains examinent ces messages via l'interface et publient leurs décisions dans `moderation-results`
-7. Le gestionnaire de décisions combine toutes ces informations et publie la décision finale dans `final-decisions`
-8. Les décisions et feedbacks sont utilisés pour améliorer les modèles via le topic `model-training-data`
+1. Game messages are sent to the ingestion proxy.
+2. The proxy publishes them to the `raw-messages` topic in Redpanda.
+3. The fast classifier (Flink) consumes and classifies messages:
+   - "OK" messages → `classified-messages` (tag: OK)
+   - "Toxic" messages → `classified-messages` (tag: Toxic)
+   - Ambiguous messages → `nlp-analysis-required`
+4. Deep analysis service processes ambiguous messages and publishes results to `nlp-analysis-results`.
+5. If undecidable, messages are forwarded to `moderation-required`.
+6. Human moderators review and submit outcomes to `moderation-results`.
+7. The decision manager combines all input and publishes final decisions to `final-decisions`.
+8. Decisions and feedback are used to improve models via `model-training-data`.
 
-## Avantages de cette architecture
+## Architecture Benefits
 
-1. **Haute disponibilité**: Tous les composants peuvent être mis à l'échelle horizontalement
-2. **Faible latence**: Classification rapide pour la majorité des messages
-3. **Adaptabilité**: Les modèles s'améliorent continuellement grâce aux retours
-4. **Open source**: Aucune dépendance à des services propriétaires
-5. **Isolation des composants**: Chaque service peut évoluer indépendamment
+1. **High Availability**: All components can be horizontally scaled.
+2. **Low Latency**: Fast classification for most messages.
+3. **Adaptability**: Models improve over time from feedback.
+4. **Open Source**: No dependency on proprietary services.
+5. **Component Isolation**: Each service can evolve independently.
 
-## Considérations de performance
+## Performance Considerations
 
-- Le classificateur rapide est optimisé pour traiter des milliers de messages par seconde
-- L'analyse approfondie est conçue pour gérer les cas ambigus sans affecter le flux principal
-- La modération humaine est minimisée grâce à l'amélioration continue des modèles
+- The fast classifier is optimized to process thousands of messages per second.
+- Deep analysis handles edge cases without slowing the main flow.
+- Human moderation is minimized through continuous model improvement.
+
+---
+

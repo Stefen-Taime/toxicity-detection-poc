@@ -1,46 +1,54 @@
-# Détection de toxicité en temps réel dans les jeux vidéo
+# Real-time Toxicity Detection in Video Games
 
-Ce POC (Proof of Concept) implémente un système de détection de toxicité en temps réel pour les jeux vidéo, en utilisant des technologies open source.
+This POC (Proof of Concept) implements a real-time toxicity detection system for video games using open source technologies.
 
-## Objectif
+## Objective
 
-Créer un système capable de détecter et de filtrer les messages toxiques dans les chats de jeux vidéo en temps réel, tout en préservant l'expérience utilisateur et en distinguant les plaisanteries amicales des comportements réellement toxiques.
+Create a system capable of detecting and filtering toxic messages in video game chats in real time, while preserving the user experience and distinguishing friendly jokes from genuinely toxic behavior.
 
 ## Architecture
 
-Notre solution remplace les composants propriétaires mentionnés dans l'article original par des alternatives open source :
+Our solution replaces the proprietary components mentioned in the original article with open source alternatives:
 
-- **Apache Kafka** (remplaçant Confluent Cloud) pour le transport des messages
-- **Apache Flink** pour le traitement en temps réel
-- **MLflow + Spark** (remplaçant Databricks) pour l'analyse approfondie et l'entraînement des modèles
-- **MinIO** (remplaçant le stockage cloud) pour le stockage des données et modèles
-- **FastAPI** pour les API de service
-- **Streamlit** pour l'interface de modération humaine
+- **Apache Kafka** (replacing Confluent Cloud) for message transport
+- **Apache Flink** for real-time processing
+- **MLflow + Spark** (replacing Databricks) for in-depth analysis and model training
+- **MinIO** (replacing cloud storage) for storing data and models
+- **FastAPI** for service APIs
+- **Streamlit** for the human moderation interface
 
-## Fonctionnalités
+## Features
 
-1. Ingestion de messages en temps réel
-2. Classification rapide des messages (OK, Toxique, Nécessite analyse)
-3. Analyse approfondie des cas ambigus
-4. Intervention humaine pour les cas complexes
-5. Apprentissage continu des modèles
-6. Interface de modération et de supervision
+1. Real-time message ingestion
+2. Quick message classification (OK, Toxic, Requires Analysis)
+3. In-depth analysis of ambiguous cases
+4. Human intervention for complex cases
+5. Continuous model training
+6. Moderation and supervision interface
 
-## Prérequis
+## Prerequisites
 
-- Docker et Docker Compose
-- Git (pour cloner ce dépôt)
+- Docker and Docker Compose
+- Git (to clone this repository)
 
-## Démarrage rapide
+## Quick Start
 
 ```bash
-git clone [ce-repo]
+git clone https://github.com/Stefen-Taime/toxicity-detection-poc.git
 cd toxicity-detection-poc
-docker-compose up -d
+docker-compose up --build
 ```
 
-Accédez à l'interface de démonstration : http://localhost:8501
-
+Access the demo interface: http://localhost:8501
+moderation ui dashboard: http://localhost:8501
+FastAPI documentation: http://localhost:8000/docs
+MLflow UI: http://localhost:5000
+MinIO Console: http://localhost:9001
+Redpanda Console: http://localhost:8080
+Flink Console: http://localhost:8081
 ## Structure du projet
 
-Consultez le document [ARCHITECTURE.md](ARCHITECTURE.md) pour plus de détails sur la conception du système.
+See the ARCHITECTURE.md document for more details on the system design. [ARCHITECTURE.md](ARCHITECTURE.md)
+
+# Run the pipeline
+./setup_pipeline.sh
