@@ -1,13 +1,9 @@
 #!/bin/bash
 
-# Script d'initialisation pour MLflow
-# Ce script configure l'environnement MLflow avec MinIO
-
 set -e
 
 echo "Configuration de MLflow avec MinIO..."
 
-# Vérification des variables d'environnement
 if [ -z "$MLFLOW_S3_ENDPOINT_URL" ]; then
   echo "MLFLOW_S3_ENDPOINT_URL n'est pas défini, utilisation de la valeur par défaut http://minio:9000"
   export MLFLOW_S3_ENDPOINT_URL="http://minio:9000"
@@ -23,7 +19,6 @@ if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   export AWS_SECRET_ACCESS_KEY="minioadmin"
 fi
 
-# Création du bucket MLflow dans MinIO si nécessaire
 echo "Vérification du bucket MLflow dans MinIO..."
 python3 - << EOF
 import boto3
@@ -52,6 +47,5 @@ else:
     print("Le bucket 'mlflow' existe déjà")
 EOF
 
-# Démarrage du serveur MLflow
 echo "Démarrage du serveur MLflow..."
 mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow --default-artifact-root s3://mlflow/

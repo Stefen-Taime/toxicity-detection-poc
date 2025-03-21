@@ -17,12 +17,10 @@ from faker import Faker
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
-# Configuration du logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration du simulateur
 GAME_MESSAGE_PROXY_URL = os.getenv("GAME_MESSAGE_PROXY_URL", "http://game-message-proxy:8000")
 SIMULATION_INTERVAL_MS = int(os.getenv("SIMULATION_INTERVAL_MS", "2000"))
 NUM_PLAYERS = int(os.getenv("NUM_PLAYERS", "20"))
@@ -31,7 +29,6 @@ FRIENDS_PROBABILITY = float(os.getenv("FRIENDS_PROBABILITY", "0.3"))
 TOXIC_MESSAGE_PROBABILITY = float(os.getenv("TOXIC_MESSAGE_PROBABILITY", "0.15"))
 AMBIGUOUS_MESSAGE_PROBABILITY = float(os.getenv("AMBIGUOUS_MESSAGE_PROBABILITY", "0.1"))
 
-# Initialisation de Faker pour générer des données aléatoires
 fake = Faker()
 
 class GameSimulator:
@@ -44,7 +41,6 @@ class GameSimulator:
         self.channels = ["global", "team", "private"]
         self.friendships = self._generate_friendships()
         
-        # Dictionnaires de messages pour la simulation
         self.normal_messages = [
             "Bien joué !",
             "On se retrouve au point B",
@@ -145,7 +141,6 @@ class GameSimulator:
             player_id = player["id"]
             friendships[player_id] = set()
             
-            # Chaque joueur a une chance d'être ami avec chaque autre joueur
             for other_player in self.players:
                 other_id = other_player["id"]
                 if player_id != other_id and random.random() < FRIENDS_PROBABILITY:
@@ -159,20 +154,16 @@ class GameSimulator:
     
     def _generate_message_content(self, sender_id, recipients):
         """Génère le contenu d'un message avec une probabilité de toxicité"""
-        # Déterminer si tous les destinataires sont des amis
         all_friends = all(self._are_friends(sender_id, r) for r in recipients)
         
-        # Probabilité de message toxique ou ambigu
         rand = random.random()
         
         if all_friends:
-            # Entre amis, plus de chances d'avoir des plaisanteries qui pourraient sembler toxiques
             if rand < 0.3:
                 return random.choice(self.friendly_banter)
             else:
                 return random.choice(self.normal_messages)
         else:
-            # Avec des inconnus, possibilité de messages toxiques ou ambigus
             if rand < TOXIC_MESSAGE_PROBABILITY:
                 return random.choice(self.toxic_messages)
             elif rand < TOXIC_MESSAGE_PROBABILITY + AMBIGUOUS_MESSAGE_PROBABILITY:
@@ -182,33 +173,24 @@ class GameSimulator:
     
     def generate_message(self):
         """Génère un message de chat aléatoire"""
-        # Sélectionner un jeu, un expéditeur et un canal aléatoires
         game = random.choice(self.games)
         sender = random.choice(self.players)
         channel = random.choice(self.channels)
         
-        # Déterminer les destinataires en fonction du canal
         if channel == "global":
-            # Message global: tous les joueurs du jeu
             recipients = [p["id"] for p in self.players if p["id"] != sender["id"]]
-            # Limiter à un nombre raisonnable pour la simulation
             recipients = random.sample(recipients, min(len(recipients), 10))
         elif channel == "team":
-            # Message d'équipe: un sous-ensemble de joueurs
             team_size = random.randint(2, 5)
             recipients = [p["id"] for p in random.sample(self.players, team_size) if p["id"] != sender["id"]]
-        else:  # private
-            # Message privé: un seul destinataire
+        else:  
             recipient = random.choice([p for p in self.players if p["id"] != sender["id"]])
             recipients = [recipient["id"]]
         
-        # Déterminer si les destinataires sont des amis de l'expéditeur
         is_friends = {recipient_id: self._are_friends(sender["id"], recipient_id) for recipient_id in recipients}
         
-        # Générer le contenu du message
         content = self._generate_message_content(sender["id"], recipients)
         
-        # Créer le message
         message = {
             "message_id": f"msg_{uuid.uuid4().hex}",
             "sender_id": sender["id"],
@@ -252,18 +234,15 @@ class GameSimulator:
         
         try:
             while True:
-                # Générer et envoyer un message
                 message = self.generate_message()
                 success = self.send_message(message)
                 
-                # Afficher des informations sur le message
                 if success:
                     is_friends_summary = sum(1 for v in message["is_friends"].values() if v)
                     total_recipients = len(message["is_friends"])
                     logger.info(f"Message de {message['sender_id']} à {total_recipients} destinataires "
                                f"({is_friends_summary} amis): {message['content'][:30]}...")
                 
-                # Attendre avant le prochain message
                 time.sleep(SIMULATION_INTERVAL_MS / 1000)
                 
         except KeyboardInterrupt:
@@ -272,10 +251,8 @@ class GameSimulator:
             logger.error(f"Erreur dans la boucle principale: {e}")
 
 if __name__ == "__main__":
-    # Attendre un peu pour s'assurer que les autres services sont prêts
     logger.info("Attente du démarrage des autres services...")
     time.sleep(10)
     
-    # Démarrer le simulateur
     simulator = GameSimulator()
     simulator.run()

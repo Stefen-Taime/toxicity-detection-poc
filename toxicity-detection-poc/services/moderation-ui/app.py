@@ -13,26 +13,21 @@ from kafka import KafkaConsumer, KafkaProducer
 from datetime import datetime
 from collections import deque
 
-# Configuration du logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration Kafka
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "redpanda:9092")
 MODERATION_REQUIRED_TOPIC = os.getenv("MODERATION_REQUIRED_TOPIC", "moderation-required")
 MODERATION_RESULTS_TOPIC = os.getenv("MODERATION_RESULTS_TOPIC", "moderation-results")
 
-# Variables globales
 global_moderation_queue = deque(maxlen=100)
 moderation_history = []
 consumer_running = False
 last_consumer_activity = time.time()
 
-# Mutex pour protéger l'accès à la file d'attente
 queue_lock = threading.Lock()
 
-# Configuration de l'app Flask
 app = Flask(__name__)
 
 def setup_kafka_consumer():
@@ -40,13 +35,12 @@ def setup_kafka_consumer():
     try:
         logger.info(f"Tentative de connexion au serveur Kafka: {KAFKA_BOOTSTRAP_SERVERS}")
         
-        # Utiliser un groupe unique à chaque démarrage pour forcer la relecture
         group_id = 'moderation-ui-' + str(int(time.time()))
         
         consumer = KafkaConsumer(
             MODERATION_REQUIRED_TOPIC,
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-            auto_offset_reset='earliest',  # Lire depuis le début
+            auto_offset_reset='earliest',  
             enable_auto_commit=True,
             group_id=group_id,
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
@@ -95,7 +89,6 @@ def consume_messages():
                 logger.info(f"Message reçu: {message}")
                 last_consumer_activity = time.time()
                 
-                # Vérifier si le message existe déjà dans la file d'attente
                 message_id = message.get('message_id', '')
                 with queue_lock:
                     existing_ids = [msg.get('message_id', '') for msg in global_moderation_queue]
@@ -103,7 +96,7 @@ def consume_messages():
                         global_moderation_queue.append(message)
                         logger.info(f"Message ajouté à la file d'attente: {message_id}")
                 
-                time.sleep(0.1)  # Petite pause pour éviter de surcharger l'interface
+                time.sleep(0.1)  
             except Exception as msg_error:
                 logger.error(f"Erreur lors du traitement d'un message: {msg_error}")
     except Exception as e:
@@ -121,7 +114,6 @@ def load_messages_directly():
     global global_moderation_queue
     
     try:
-        # Configuration d'un consumer temporaire avec un groupe unique
         temp_group_id = 'temp-loader-' + str(int(time.time()))
         logger.info(f"Chargement direct des messages avec group_id={temp_group_id}")
         
@@ -129,20 +121,18 @@ def load_messages_directly():
             MODERATION_REQUIRED_TOPIC,
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
             auto_offset_reset='earliest',
-            enable_auto_commit=False,  # Ne pas marquer comme lus
+            enable_auto_commit=False,  
             group_id=temp_group_id,
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-            consumer_timeout_ms=10000  # 10 secondes max
+            consumer_timeout_ms=10000  
         )
         
-        # Lire tous les messages
         messages = []
         for record in temp_consumer:
             message = record.value
             messages.append(message)
             logger.info(f"Message chargé directement: {message.get('message_id', 'unknown')}")
         
-        # Ajouter à la file d'attente (éviter les doublons)
         count = 0
         with queue_lock:
             existing_ids = [msg.get('message_id', '') for msg in global_moderation_queue]
@@ -168,7 +158,6 @@ def send_moderation_decision(message, decision, reason=None):
         return False
     
     try:
-        # Ajouter la décision de modération au message
         message["moderation"] = {
             "decision": decision,
             "reason": reason,
@@ -185,7 +174,6 @@ def send_moderation_decision(message, decision, reason=None):
         result = future.get(timeout=10)
         logger.info(f"Décision envoyée: {message_id}, décision: {decision}")
         
-        # Ajouter à l'historique pour les statistiques
         global moderation_history
         moderation_history.append({
             "timestamp": datetime.now().isoformat(),
@@ -201,7 +189,6 @@ def send_moderation_decision(message, decision, reason=None):
     finally:
         producer.close()
 
-# Routes Flask pour l'API
 @app.route('/')
 def index():
     """Page principale de l'interface"""
@@ -232,7 +219,6 @@ def get_current_message():
     """Retourne le premier message de la file d'attente"""
     with queue_lock:
         if global_moderation_queue:
-            # Faire une copie pour éviter des problèmes de concurrence
             current_message = dict(global_moderation_queue[0])
             return jsonify({
                 "status": "success",
@@ -266,12 +252,11 @@ def post_decision():
         if not global_moderation_queue:
             return jsonify({"status": "error", "message": "Aucun message à modérer"}), 404
         
-        current_message = dict(global_moderation_queue[0])  # Faire une copie du message
+        current_message = dict(global_moderation_queue[0])  
     
     decision = data['decision']
     reason = data.get('reason', '')
     
-    # Vérifier que la raison est fournie pour les décisions de blocage
     if decision == "TOXIC" and not reason:
         return jsonify({"status": "error", "message": "Une raison est requise pour bloquer un message"}), 400
     
@@ -281,9 +266,7 @@ def post_decision():
         
         if success:
             with queue_lock:
-                # Vérifie si la file n'est pas vide avant de supprimer
                 if global_moderation_queue:
-                    # Supprimer le message de la file (peu importe son ID)
                     global_moderation_queue.popleft()
                     logger.info(f"Message {current_message.get('message_id')} supprimé de la file après décision: {decision}")
             
@@ -294,7 +277,6 @@ def post_decision():
     elif decision == "SKIP":
         with queue_lock:
             if global_moderation_queue:
-                # Déplacer à la fin sans vérifier l'ID
                 message = global_moderation_queue.popleft()
                 global_moderation_queue.append(message)
                 logger.info(f"Message {message.get('message_id')} déplacé à la fin de la file")
@@ -309,14 +291,11 @@ def restart_consumer():
     """Redémarre le consommateur Kafka"""
     global consumer_running
     
-    # Arrêter le thread actuel s'il est en cours d'exécution
     consumer_running = False
     
-    # Vider la file d'attente
     with queue_lock:
         global_moderation_queue.clear()
     
-    # Démarrer un nouveau thread
     kafka_thread = threading.Thread(target=consume_messages, daemon=True)
     kafka_thread.start()
     
@@ -384,9 +363,7 @@ def get_moderation_history():
     })
 
 if __name__ == "__main__":
-    # Démarrer le thread de consommation Kafka
     kafka_thread = threading.Thread(target=consume_messages, daemon=True)
     kafka_thread.start()
     
-    # Démarrer l'application Flask
     app.run(host='0.0.0.0', port=8501, debug=True, use_reloader=False)

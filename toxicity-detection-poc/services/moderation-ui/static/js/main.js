@@ -336,16 +336,13 @@ async function loadModerationHistory() {
 // Submit a moderation decision
 // Submit a moderation decision
 async function submitDecision(decision) {
-    // If no message is currently loaded, do nothing
     if (!currentMessageId) {
         showNotification('Erreur', 'Aucun message à modérer.', 'error');
         return;
     }
     
-    // Get reason from input
     const reason = document.getElementById('reason-input').value.trim();
     
-    // Verify reason is provided for toxic messages
     if (decision === 'TOXIC' && !reason) {
         showNotification('Erreur', 'Une raison est obligatoire pour bloquer un message.', 'error');
         return;
@@ -366,7 +363,6 @@ async function submitDecision(decision) {
         const data = await response.json();
         
         if (data.status === 'success') {
-            // Show success notification
             let actionText = '';
             if (decision === 'OK') actionText = 'autorisé';
             else if (decision === 'TOXIC') actionText = 'bloqué';
@@ -374,16 +370,12 @@ async function submitDecision(decision) {
             
             showNotification('Succès', `Message ${actionText} avec succès.`, 'success');
             
-            // Forcer l'actualisation de la liste des messages
             currentMessageId = null;
             
-            // Attendre un court instant avant de recharger
             setTimeout(() => {
-                // Forcer le rechargement de tous les éléments nécessaires
                 loadCurrentMessage();
                 updateSystemStatus();
                 
-                // Mise à jour de l'historique si une décision a été prise
                 if (decision !== 'SKIP') {
                     loadModerationHistory();
                     lastHistoryUpdate = Date.now();

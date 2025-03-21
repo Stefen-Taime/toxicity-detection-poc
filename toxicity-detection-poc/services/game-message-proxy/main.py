@@ -6,19 +6,15 @@ import os
 import logging
 from typing import Dict, List, Optional, Any
 
-# Configuration du logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration Kafka
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "192.168.229.167:9092")
 RAW_MESSAGES_TOPIC = os.getenv("RAW_MESSAGES_TOPIC", "raw-messages")
 
-# Initialisation de l'application FastAPI
 app = FastAPI(title="Game Message Proxy", 
               description="Proxy d'ingestion pour les messages de chat des jeux vidéo")
 
-# Modèle de données pour les messages
 class GameMessage(BaseModel):
     message_id: str
     sender_id: str
@@ -27,10 +23,9 @@ class GameMessage(BaseModel):
     game_id: str
     channel_id: str
     recipients: List[str]
-    is_friends: Dict[str, bool] = {}  # Indique si le destinataire est ami avec l'expéditeur
+    is_friends: Dict[str, bool] = {}  
     metadata: Optional[Dict[str, Any]] = None
 
-# Initialisation du producteur Kafka
 try:
     producer = KafkaProducer(
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
@@ -42,7 +37,6 @@ except Exception as e:
     logger.error(f"Erreur lors de la connexion à Kafka: {e}")
     producer = None
 
-# Fonction pour envoyer un message à Kafka
 def send_to_kafka(message: dict, message_id: str):
     if producer:
         try:
@@ -65,10 +59,8 @@ async def receive_message(message: GameMessage, background_tasks: BackgroundTask
     """
     logger.info(f"Message reçu: {message.message_id} de {message.sender_id}")
     
-    # Conversion du modèle Pydantic en dictionnaire
     message_dict = message.dict()
     
-    # Envoi du message à Kafka en arrière-plan
     background_tasks.add_task(send_to_kafka, message_dict, message.message_id)
     
     return {"status": "accepted", "message_id": message.message_id}
