@@ -1,0 +1,10 @@
+fastapi==0.95.1
+uvicorn==0.22.0
+pydantic==1.10.7
+faker==18.9.0
+numpy==1.24.3
+python-dotenv==1.0.0
+pymongo==4.3.3
+psycopg2-binary==2.9.6
+minio==7.1.15
+asyncio==3.4.3

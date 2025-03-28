@@ -1,0 +1,527 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 6,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "MTBF (heures)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "hours"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "title": "Impact des modifications sur le MTBF",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "timescaledb"
+          },
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH modifications AS (\n  SELECT\n    me.component_id,\n    me.event_timestamp as modification_date,\n    c.component_type\n  FROM\n    raw.maintenance_events me\n  JOIN\n    raw.components c ON me.component_id = c.component_id\n  WHERE\n    me.event_type = 'MODIFICATION'\n    AND me.event_timestamp >= NOW() - INTERVAL '180 days'\n)\n\nSELECT\n  rm.calculation_timestamp as time,\n  m.component_type as metric,\n  AVG(rm.mtbf_hours) as value\nFROM\n  metrics.reliability_metrics rm\nJOIN\n  modifications m ON rm.component_id = m.component_id\nWHERE\n  $__timeFilter(rm.calculation_timestamp)\n  AND rm.calculation_timestamp >= m.modification_date\nGROUP BY\n  rm.calculation_timestamp, m.component_type\nORDER BY 1,2",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "timescaledb"
+          },
+          "format": "time_series",
+          "group": [],
+          "hide": false,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH modifications AS (\n  SELECT\n    me.component_id,\n    me.event_timestamp as modification_date,\n    c.component_type\n  FROM\n    raw.maintenance_events me\n  JOIN\n    raw.components c ON me.component_id = c.component_id\n  WHERE\n    me.event_type = 'MODIFICATION'\n    AND me.event_timestamp >= NOW() - INTERVAL '180 days'\n)\n\nSELECT\n  rm.calculation_timestamp as time,\n  CONCAT(m.component_type, ' (avant)') as metric,\n  AVG(rm.mtbf_hours) as value\nFROM\n  metrics.reliability_metrics rm\nJOIN\n  modifications m ON rm.component_id = m.component_id\nWHERE\n  $__timeFilter(rm.calculation_timestamp)\n  AND rm.calculation_timestamp < m.modification_date\nGROUP BY\n  rm.calculation_timestamp, m.component_type\nORDER BY 1,2",
+          "refId": "B",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MTBF avant (heures)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hours"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MTBF après (heures)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hours"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Amélioration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 10
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Taux de défaillance avant"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Taux de défaillance après"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.3.6",
+      "title": "Impact des modifications par type de composant",
+      "type": "table",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "timescaledb"
+          },
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH modifications AS (\n  SELECT\n    me.component_id,\n    me.event_timestamp as modification_date,\n    c.component_type\n  FROM\n    raw.maintenance_events me\n  JOIN\n    raw.components c ON me.component_id = c.component_id\n  WHERE\n    me.event_type = 'MODIFICATION'\n    AND me.event_timestamp >= NOW() - INTERVAL '180 days'\n),\n\nbefore_mod AS (\n  SELECT\n    m.component_type,\n    AVG(rm.mtbf_hours) as mtbf_before,\n    AVG(rm.failure_rate_per_1000_hours) / 1000 as failure_rate_before\n  FROM\n    metrics.reliability_metrics rm\n  JOIN\n    modifications m ON rm.component_id = m.component_id\n  WHERE\n    rm.calculation_timestamp < m.modification_date\n  GROUP BY\n    m.component_type\n),\n\nafter_mod AS (\n  SELECT\n    m.component_type,\n    AVG(rm.mtbf_hours) as mtbf_after,\n    AVG(rm.failure_rate_per_1000_hours) / 1000 as failure_rate_after\n  FROM\n    metrics.reliability_metrics rm\n  JOIN\n    modifications m ON rm.component_id = m.component_id\n  WHERE\n    rm.calculation_timestamp >= m.modification_date\n  GROUP BY\n    m.component_type\n)\n\nSELECT\n  b.component_type as \"Type de composant\",\n  b.mtbf_before as \"MTBF avant (heures)\",\n  a.mtbf_after as \"MTBF après (heures)\",\n  (a.mtbf_after - b.mtbf_before) / b.mtbf_before * 100 as \"Amélioration\",\n  b.failure_rate_before as \"Taux de défaillance avant\",\n  a.failure_rate_after as \"Taux de défaillance après\"\nFROM\n  before_mod b\nJOIN\n  after_mod a ON b.component_type = a.component_type\nORDER BY\n  \"Amélioration\" DESC",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Taux de défaillance",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "title": "Évolution du taux de défaillance après modification",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "timescaledb"
+          },
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH modifications AS (\n  SELECT\n    me.component_id,\n    me.event_timestamp as modification_date,\n    c.component_type\n  FROM\n    raw.maintenance_events me\n  JOIN\n    raw.components c ON me.component_id = c.component_id\n  WHERE\n    me.event_type = 'MODIFICATION'\n    AND me.event_timestamp >= NOW() - INTERVAL '180 days'\n)\n\nSELECT\n  rm.calculation_timestamp as time,\n  m.component_type as metric,\n  AVG(rm.failure_rate_per_1000_hours) / 1000 as value\nFROM\n  metrics.reliability_metrics rm\nJOIN\n  modifications m ON rm.component_id = m.component_id\nWHERE\n  $__timeFilter(rm.calculation_timestamp)\n  AND rm.calculation_timestamp >= m.modification_date\nGROUP BY\n  rm.calculation_timestamp, m.component_type\nORDER BY 1,2",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "pluginVersion": "9.3.6",
+      "title": "Amélioration du MTBF par modification",
+      "type": "bargauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "timescaledb"
+          },
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH modifications AS (\n  SELECT\n    me.component_id,\n    me.event_timestamp as modification_date,\n    me.maintenan<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>

@@ -1,0 +1,50 @@
+version: 2
+
+sources:
+  - name: raw
+    database: mcs100_db
+    schema: raw
+    tables:
+      - name: aircraft_metadata
+      - name: components
+      - name: flight_data
+      - name: sensor_data
+      - name: maintenance_events
+      - name: alerts
+      - name: usage_cycles
+
+  - name: metrics
+    database: mcs100_db
+    schema: metrics
+    tables:
+      - name: reliability_metrics
+      - name: performance_metrics
+      - name: maintenance_recommendations
+      - name: anomalies
+
+targets:
+  dev:
+    type: postgres
+    host: "{{ env_var('TIMESCALEDB_HOST', 'timescaledb') }}"
+    port: "{{ env_var('TIMESCALEDB_PORT', '5432') | as_number }}"
+    user: "{{ env_var('TIMESCALEDB_USER', 'postgres') }}"
+    password: "{{ env_var('TIMESCALEDB_PASSWORD', 'postgres') }}"
+    dbname: "{{ env_var('TIMESCALEDB_DB', 'mcs100_db') }}"
+    schema: dbt_dev
+    threads: 4
+    keepalives_idle: 0
+    connect_timeout: 10
+    retries: 3
+
+  prod:
+    type: postgres
+    host: "{{ env_var('TIMESCALEDB_HOST', 'timescaledb') }}"
+    port: "{{ env_var('TIMESCALEDB_PORT', '5432') | as_number }}"
+    user: "{{ env_var('TIMESCALEDB_USER', 'postgres') }}"
+    password: "{{ env_var('TIMESCALEDB_PASSWORD', 'postgres') }}"
+    dbname: "{{ env_var('TIMESCALEDB_DB', 'mcs100_db') }}"
+    schema: dbt_prod
+    threads: 8
+    keepalives_idle: 0
+    connect_timeout: 10
+    retries: 5

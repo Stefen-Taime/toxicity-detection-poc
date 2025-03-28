@@ -1,0 +1,43 @@
+# Configuration par défaut pour Apache Spark
+
+# Paramètres généraux
+spark.master                     spark://spark-master:7077
+spark.app.name                   MCS100-fleet-analytics
+spark.submit.deployMode          client
+spark.ui.port                    8181
+spark.ui.showConsoleProgress     true
+spark.eventLog.enabled           true
+spark.eventLog.dir               /opt/spark/logs
+spark.serializer                 org.apache.spark.serializer.KryoSerializer
+spark.driver.memory              4g
+spark.executor.memory            4g
+spark.executor.cores             2
+spark.executor.instances         2
+spark.default.parallelism        8
+spark.sql.shuffle.partitions     8
+
+# Paramètres pour TimescaleDB
+spark.sql.extensions             io.delta.sql.DeltaSparkSessionExtension
+spark.sql.catalog.spark_catalog  org.apache.spark.sql.delta.catalog.DeltaCatalog
+spark.hadoop.fs.s3a.endpoint     http://minio:9000
+spark.hadoop.fs.s3a.access.key   minioadmin
+spark.hadoop.fs.s3a.secret.key   minioadmin
+spark.hadoop.fs.s3a.path.style.access true
+spark.hadoop.fs.s3a.impl         org.apache.hadoop.fs.s3a.S3AFileSystem
+
+# Paramètres pour les jobs ML
+spark.sql.execution.arrow.pyspark.enabled true
+spark.sql.adaptive.enabled       true
+spark.sql.adaptive.coalescePartitions.enabled true
+spark.sql.adaptive.skewJoin.enabled true
+spark.sql.adaptive.localShuffleReader.enabled true
+
+# Paramètres de journalisation
+spark.driver.extraJavaOptions    -Dlog4j.rootCategory=WARN,console
+spark.executor.extraJavaOptions  -Dlog4j.rootCategory=WARN,console
+
+# Paramètres de sécurité
+spark.authenticate               false
+spark.network.crypto.enabled     false
+spark.local.dir                  /tmp/spark-local
+spark.worker.cleanup.enabled     true
